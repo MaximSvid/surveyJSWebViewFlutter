@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SurveyJS in Flutter WebView</title>
+    <link href="https://unpkg.com/survey-knockout/survey.min.css" type="text/css" rel="stylesheet" />
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 0; }
+        #surveyContainer { padding: 20px; }
+    </style>
+</head>
+<body>
+    <div id="surveyContainer"></div>
+
+    <script src="https://unpkg.com/survey-knockout/survey.ko.min.js"></script>
+
+    <script type="text/javascript">
+        // Инициализация SurveyJS
+        var survey;
+
+        // Функция для загрузки схемы опроса (вызывается из Flutter)
+        function loadSurveySchema(jsonSchema) {
+            console.log("Loading survey schema from Flutter:", jsonSchema);
+            try {
+                var surveyData = JSON.parse(jsonSchema);
+                survey = new Survey.SurveyModel(surveyData);
+
+                // Установите функцию обработки завершения опроса
+                survey.onComplete.add(function (sender) {
+                    var result = sender.data;
+                    console.log("Survey completed! Sending results to Flutter:", result);
+                    // Отправляем результаты обратно в Flutter
+                    // 'FlutterChannel' - это имя канала, которое мы определим во Flutter
+                    FlutterChannel.postMessage(JSON.stringify(result));
+                });
+
+                // Рендерим опрос
+                survey.render("surveyContainer");
+            } catch (e) {
+                console.error("Error parsing survey schema from Flutter:", e);
+            }
+        }
+
+        // Эта функция будет вызвана из Flutter, чтобы сообщить HTML, что он готов
+        function initSurvey() {
+             console.log("HTML ready for survey schema.");
+             // Сообщаем Flutter, что мы готовы получить схему
+             FlutterReadyChannel.postMessage("ready");
+        }
+
+        // Вызываем initSurvey, как только DOM загружен
+        document.addEventListener('DOMContentLoaded', initSurvey);
+
+    </script>
+</body>
+</html>
