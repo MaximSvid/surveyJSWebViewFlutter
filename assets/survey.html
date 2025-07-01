@@ -1,54 +1,74 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SurveyJS in Flutter WebView</title>
-    <link href="https://unpkg.com/survey-knockout/survey.min.css" type="text/css" rel="stylesheet" />
+    <title>Survey</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="jquery.min.js"></script>
+    <script src="survey.jquery.min.js"></script>
+    <link href="modern.min.css" type="text/css" rel="stylesheet"/>
     <style>
-        body { font-family: sans-serif; margin: 0; padding: 0; }
-        #surveyContainer { padding: 20px; }
+        body { margin: 0; padding: 0; }
+        #surveyContainer {
+            margin: 10px; /* Добавляем отступы вокруг опроса */
+        }
     </style>
 </head>
 <body>
     <div id="surveyContainer"></div>
 
-    <script src="https://unpkg.com/survey-knockout/survey.ko.min.js"></script>
-
     <script type="text/javascript">
-        // Инициализация SurveyJS
-        var survey;
+        // Глобальная переменная для хранения JSON-схемы опроса, пока все не будет готово
+        var globalSurveyJson = null;
 
-        // Функция для загрузки схемы опроса (вызывается из Flutter)
-        function loadSurveySchema(jsonSchema) {
-            console.log("Loading survey schema from Flutter:", jsonSchema);
-            try {
-                var surveyData = JSON.parse(jsonSchema);
-                survey = new Survey.SurveyModel(surveyData);
+        // Эта функция будет вызвана из Flutter для передачи JSON-схемы опроса
+        function setSurveyJson(json) {
+            console.log("JS: setSurveyJson вызван из Flutter."); // Лог для отладки
+            globalSurveyJson = json;
+            // Попробуем инициализировать опрос, если все остальное готово
+            initializeSurveyIfReady();
+        }
 
-                // Установите функцию обработки завершения опроса
-                survey.onComplete.add(function (sender) {
-                    var result = sender.data;
-                    console.log("Survey completed! Sending results to Flutter:", result);
-                    // Отправляем результаты обратно в Flutter
-                    // 'FlutterChannel' - это имя канала, которое мы определим во Flutter
-                    FlutterChannel.postMessage(JSON.stringify(result));
-                });
-
-                // Рендерим опрос
-                survey.render("surveyContainer");
-            } catch (e) {
-                console.error("Error parsing survey schema from Flutter:", e);
+        // Функция для инициализации опроса SurveyJS
+        function initializeSurveyIfReady() {
+            console.log("JS: initializeSurveyIfReady вызван."); // Лог для отладки
+            // Проверяем, доступны ли jQuery, SurveyJS и наша схема опроса
+            if (globalSurveyJson && typeof jQuery !== 'undefined' && typeof Survey !== 'undefined' && typeof Survey.Model !== 'undefined') {
+                console.log("JS: Все зависимости (jQuery, SurveyJS, globalSurveyJson) готовы."); // Лог для отладки
+                try {
+                    console.log("JS: Попытка инициализации SurveyJS...");
+                    var survey = new Survey.Model(globalSurveyJson);
+                    survey.onComplete.add(function(sender) {
+                        if (window.FlutterMethodChannel) {
+                            window.FlutterMethodChannel.postMessage(JSON.stringify(sender.data));
+                            console.log("JS: Данные опроса отправлены во Flutter."); // Лог для отладки
+                        } else {
+                            console.error("JS: FlutterMethodChannel не определен. Невозможно отправить данные опроса.");
+                        }
+                    });
+                    $("#surveyContainer").Survey({ model: survey });
+                    console.log("JS: SurveyJS успешно инициализирован!"); // Лог успеха
+                } catch (e) {
+                    console.error("JS: Ошибка инициализации SurveyJS:", e); // Детальный лог ошибки
+                }
+            } else {
+                console.warn("JS: SurveyJS, jQuery или surveyJson еще не загружены/установлены. Текущее состояние: jQuery=" + (typeof jQuery !== 'undefined') + ", Survey=" + (typeof Survey !== 'undefined') + ", globalSurveyJson=" + (globalSurveyJson !== null));
+                // Можно добавить таймаут для повторной попытки, но DOMContentLoaded/load уже должны это обеспечить
             }
         }
 
-        // Эта функция будет вызвана из Flutter, чтобы сообщить HTML, что он готов
-        function initSurvey() {
-             console.log("HTML ready for survey schema.");
-             // Сообщаем Flutter, что мы готовы получить схему
-             FlutterReadyChannel.postMessage("ready");
-        }
+        // --- Ключевая часть для управления временем выполнения ---
+        // Слушаем событие DOMContentLoaded: структура HTML готова, но внешние ресурсы могут все еще загружаться
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log("JS: Сработало событие DOMContentLoaded."); // Лог для отладки
+            initializeSurveyIfReady(); // Попытаться инициализировать, как только DOM будет готов
+        });
 
-        // Вызываем initSurvey, как только DOM загружен
-        document.addEventListener('DOMContentLoaded', initSurvey);
+        // Слушаем событие window.load: Все ресурсы (изображения, скрипты и т.д.) полностью загружены
+        window.addEventListener("load", function() {
+            console.log("JS: Сработало событие window.load."); // Лог для отладки
+            initializeSurveyIfReady(); // Повторить попытку инициализации, когда все загрузится
+        });
+        // --- Конец ключевой части для управления временем выполнения ---
 
     </script>
 </body>

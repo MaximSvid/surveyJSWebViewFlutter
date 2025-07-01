@@ -14,15 +14,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.2.1 # Для запросов к вашему Spring Boot бэкенду
+  http: ^1.2.2 # Для запросов к вашему Spring Boot бэкенду
   provider: ^6.1.2 # Для управления состоянием (ваш ViewModel)
 
 
 
   # Добавьте эти пакеты для WebView:
-  webview_flutter: ^4.7.0 # Или самая актуальная версия
-  webview_flutter_android: ^3.16.0 # Для Android
-  webview_flutter_wkwebview: ^3.13.0 # Для iOS/macOS
+  webview_flutter: ^4.13.0 
+  webview_flutter_android: ^4.7.0 
+  webview_flutter_wkwebview: ^3.22.0 
+  url_launcher: ^6.3.0 # Для открытия ссылок в браузере
 
  
   cupertino_icons: ^1.0.8
@@ -34,9 +35,12 @@ dev_dependencies:
 
   flutter_lints: ^5.0.0
 
-flutter: # Эта секция должна быть на том же уровне, что и `name`, `description` и `dependencies`
+flutter:
   uses-material-design: true
 
-  assets: # Эта секция должна быть внутри `flutter:` и иметь правильный отступ
+  assets:
     - assets/survey.html
+    - assets/jquery.min.js     
+    - assets/survey.jquery.min.js 
+    - assets/modern.min.css 
 
